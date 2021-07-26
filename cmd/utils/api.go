@@ -1,17 +1,23 @@
-package cmd
+package utils
 
 import (
 	"errors"
 	"fmt"
 	"net"
 	"os"
+	"regexp"
 
 	"github.com/go-openapi/runtime"
 	"github.com/niemeyer/pretty"
 	client "github.com/spirent/openperf/api/client/golang/client"
 )
 
+// IDRegEx regular expression that matches valid OpenPerf IDs
+var IDRegEx = "^[a-z0-9-]+$"
+
 func ClassifyAPIError(err error, resourceType string, resourceID string) {
+
+	fmt.Println("Error occurred while communicating with OpenPerf:")
 
 	var apiError *runtime.APIError
 	if errors.As(err, &apiError) {
@@ -37,16 +43,27 @@ func ClassifyAPIError(err error, resourceType string, resourceID string) {
 		fmt.Println(syscallErr.Error())
 		return
 	}
-
-	fmt.Println("Error occurred while communicating with OpenPerf")
 }
 
-func OPClientConnection() *client.OpenPerfAPI {
+func OPClientConnection(opURL string) *client.OpenPerfAPI {
 	tcConfig := client.TransportConfig{
-		Host:    OPHost,
+		Host:    opURL,
 		Schemes: []string{"http"},
 	}
-	//tcConfig.Host = url
-	//pretty.Println(tcConfig)
+
 	return client.NewHTTPClientWithConfig(nil, &tcConfig)
+}
+
+func ValidateID(id string) error {
+	matched, err := regexp.MatchString(IDRegEx, id)
+
+	if err != nil {
+		return err
+	}
+
+	if !matched {
+		return errors.New("invalid ID format")
+	}
+
+	return nil
 }

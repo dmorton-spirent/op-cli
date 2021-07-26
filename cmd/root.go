@@ -8,6 +8,11 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+
+	dumpCmd "github.com/dmorton-spirent/op-cli/cmd/dump"
+	getCmd "github.com/dmorton-spirent/op-cli/cmd/get"
+	listCmd "github.com/dmorton-spirent/op-cli/cmd/list"
+	validateCmd "github.com/dmorton-spirent/op-cli/cmd/validate"
 )
 
 var cfgFile string
@@ -15,42 +20,43 @@ var cfgFile string
 // OPHost IP address/hostname and API port number of OpenPerf.
 var OPHost string
 
-// rootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "op-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+var opHostFlagName = "remote"
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "op-cli",
+	Short: "A command-line interface for OpenPerf",
+	Long: `OpenPerf (github.com/Spirent/openperf) is an infrastructure
+and application test and analysis framework.
+op-cli is a utility to interact with OpenPerf's REST API from the command line.
+It aims to simplify common interactions with OpenPerf, as well as provide
+utility functions to aid integrators of OpenPerf.
+op-cli follows the Go and Docker model of <program> <verb> <noun> to avoid an
+excess of CLI flags while maintaining a single binary for all tools.
+
+Example Usage:
+op-cli list ports                 - List all ports associated with an OpenPerf instance.
+op-cli get interface Interface0   - Get statistics for OpenPerf emulated interface Interface0.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	cobra.CheckErr(RootCmd.Execute())
+	cobra.CheckErr(rootCmd.Execute())
 }
 
 func init() {
-	fmt.Println("init called in root.go")
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.op-cli.yaml)")
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.op-cli.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&OPHost, opHostFlagName, "r", "localhost:9000", "host and API port for OpenPerf")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	RootCmd.PersistentFlags().StringVarP(&OPHost, "remote", "r", "localhost:9000", "host and API port for OpenPerf")
+	// Register subcommands. Using the init() procedure results in import loops.
+	dumpCmd.Register(rootCmd, opHostFlagName)
+	getCmd.Register(rootCmd, opHostFlagName)
+	listCmd.Register(rootCmd, opHostFlagName)
+	validateCmd.Register(rootCmd, opHostFlagName)
 }
 
 // initConfig reads in config file and ENV variables if set.
